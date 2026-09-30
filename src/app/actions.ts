@@ -1,6 +1,7 @@
 "use server";
 
 import nodemailer from "nodemailer";
+import { redirect } from "next/navigation";
 
 export type ContactState = { status: "idle" | "sent" | "error"; message: string };
 
@@ -10,7 +11,7 @@ export type ContactState = { status: "idle" | "sent" | "error"; message: string 
 //   GMAIL_APP_PASSWORD  a Google "app password" (requires 2-Step Verification on that account)
 export async function sendContact(_prev: ContactState, formData: FormData): Promise<ContactState> {
   // bots fill every field, people never see this one
-  if (formData.get("company")) return { status: "sent", message: "Thanks, your message is on its way." };
+  if (formData.get("company")) redirect("/thanks");
 
   const name = String(formData.get("name") ?? "").trim().slice(0, 200);
   const email = String(formData.get("email") ?? "").trim().slice(0, 200);
@@ -36,9 +37,10 @@ export async function sendContact(_prev: ContactState, formData: FormData): Prom
       subject: `New message from ${name}`,
       text: `${message}\n\n— ${name} <${email}>`,
     });
-    return { status: "sent", message: "Thanks, your message is on its way. I'll reply by email." };
   } catch (error) {
     console.error("Contact form: sending failed", error);
     return { status: "error", message: "Something went wrong sending that. Please email me directly." };
   }
+  // Sent: on to the thank-you page (outside the try, since redirect() works by throwing).
+  redirect(`/thanks?name=${encodeURIComponent(name.split(/\s+/)[0])}`);
 }
