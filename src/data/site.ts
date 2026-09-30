@@ -87,11 +87,15 @@ export const categories: Category[] = [
   },
 ];
 
+// A tool in the hero's logo row. `logo` is an uploaded image URL; without one, the built-in logo for that
+// name is used (see src/components/icons.tsx), or a letter tile if there isn't one.
+export type Tool = { name: string; logo?: string };
+
 export type SiteContent = {
   person: { name: string; role: string; intro: string; email: string };
   bio: string[];
   services: { name: string; icon: string }[];
-  tools: string[];
+  tools: Tool[];
   showreel: Video;
   categories: Category[];
 };
@@ -100,7 +104,7 @@ export const fallbackContent: SiteContent = {
   person,
   bio,
   services: services.map((s) => ({ ...s })),
-  tools: [...tools],
+  tools: tools.map((name) => ({ name })),
   showreel,
   categories,
 };

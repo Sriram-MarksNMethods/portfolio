@@ -52,7 +52,7 @@ const doc = {
   role: c.person.role,
   intro: c.person.intro,
   email: c.person.email,
-  tools: c.tools,
+  tools: c.tools.map((t) => ({ _key: key(), _type: "tool", name: t.name })),
   bio: c.bio,
   services: c.services.map((s) => ({ _key: key(), _type: "service", ...s })),
   showreel: await videoFields(c.showreel),

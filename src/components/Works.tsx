@@ -65,6 +65,9 @@ export default function Works({ categories }: { categories: Category[] }) {
             onKeyDown={(e) => onTabKey(e, i)}
             className={`border-2 border-ink px-2 py-[13px] font-mono text-xs leading-none font-semibold tracking-[.04em] whitespace-nowrap uppercase sm:px-[18px] sm:text-[13px] sm:tracking-[.08em] ${
               i === active ? "bg-ink text-paper" : "hover:bg-ink/10"
+            } ${
+              // phones show two tabs per row; an odd one out at the end spans the full width
+              categories.length % 2 === 1 && i === categories.length - 1 ? "col-span-2 sm:col-span-1" : ""
             }`}
           >
             {c.name}

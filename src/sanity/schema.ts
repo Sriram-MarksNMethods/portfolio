@@ -44,11 +44,30 @@ export const site = defineType({
     defineField({ name: "email", title: "Contact email", type: "string", group: "profile", validation: (rule) => rule.email() }),
     defineField({
       name: "tools",
-      title: "Tools (logos along the bottom of the hero)",
+      title: "Tools (logos scrolling along the bottom of the hero)",
       type: "array",
       group: "profile",
-      of: [defineArrayMember({ type: "string" })],
-      options: { list: fallbackContent.tools.map((tool) => ({ title: tool, value: tool })) },
+      description: "Add, remove or drag to reorder.",
+      of: [
+        defineArrayMember({
+          name: "tool",
+          title: "Tool",
+          type: "object",
+          fields: [
+            defineField({ name: "name", title: "Name", type: "string", description: "For example: Houdini", validation: (rule) => rule.required() }),
+            defineField({
+              name: "logo",
+              title: "Logo",
+              type: "image",
+              options: { accept: "image/svg+xml,image/png,image/webp" },
+              description: `Upload an SVG or PNG with a transparent background; it's shown in white. Not needed for ${fallbackContent.tools
+                .map((t) => t.name)
+                .join(", ")} (built in).`,
+            }),
+          ],
+          preview: { select: { title: "name", media: "logo" } },
+        }),
+      ],
     }),
 
     defineField({

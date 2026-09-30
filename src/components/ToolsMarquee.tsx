@@ -3,13 +3,14 @@
 import useEmblaCarousel from "embla-carousel-react";
 import AutoScroll from "embla-carousel-auto-scroll";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import type { Tool } from "@/data/site";
 import { ToolLogo } from "./icons";
 
 // The tool logos scrolling past in an endless loop along the bottom of the hero (Embla + AutoScroll).
 // The list is repeated so the loop never runs out of logos, even on wide screens; only the first copy is read out.
 const COPIES = 3;
 
-export default function ToolsMarquee({ tools }: { tools: string[] }) {
+export default function ToolsMarquee({ tools }: { tools: Tool[] }) {
   const reduced = useReducedMotion();
   const [viewportRef] = useEmblaCarousel(
     { loop: true, dragFree: true, align: "start" },
@@ -31,8 +32,8 @@ export default function ToolsMarquee({ tools }: { tools: string[] }) {
             aria-hidden={copy > 0 || undefined}
             className="flex min-w-0 flex-none items-center gap-2.5 pl-7 text-[15px] leading-tight whitespace-nowrap sm:pl-10 sm:text-base"
           >
-            <ToolLogo name={tool} className="size-[26px] flex-none sm:size-[30px]" />
-            <span>{tool}</span>
+            <ToolLogo tool={tool} className="size-[26px] flex-none sm:size-[30px]" />
+            <span>{tool.name}</span>
           </li>
         ))}
       </ul>

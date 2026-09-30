@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import type { SiteContent } from "@/data/site";
+import type { SiteContent, Tool } from "@/data/site";
 import { prefersReducedMotion } from "@/lib/scroll";
 import ToolsMarquee from "./ToolsMarquee";
 
@@ -21,7 +21,7 @@ const layers = [
 // size and centred, so a slow connection never shows a tiny name that jumps; the fit below then makes it exact.
 const approxSize = (name: string) => `calc((100vw - 40px) / ${(name.length * 0.475).toFixed(2)})`;
 
-export default function Hero({ person, tools }: { person: SiteContent["person"]; tools: string[] }) {
+export default function Hero({ person, tools }: { person: SiteContent["person"]; tools: Tool[] }) {
   const heroRef = useRef<HTMLElement>(null);
   const nameRef = useRef<HTMLHeadingElement>(null);
   const lineRef = useRef<HTMLSpanElement>(null);

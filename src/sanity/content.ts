@@ -1,12 +1,14 @@
 import { createClient, defineQuery } from "next-sanity";
-import { fallbackContent, type SiteContent, type Video } from "@/data/site";
+import { fallbackContent, type SiteContent, type Tool, type Video } from "@/data/site";
 import { apiVersion, dataset, isSanityConfigured, projectId } from "./env";
 
 const client = createClient({ projectId: projectId || "unset", dataset, apiVersion, useCdn: true });
 
 const videoProjection = `title, "src": coalesce(video.asset->url, videoUrl), "poster": poster.asset->url`;
 const siteQuery = defineQuery(`*[_type == "site" && _id == "site"][0]{
-  name, role, intro, email, tools, bio,
+  name, role, intro, email, bio,
+  tools,
+  "toolLogos": tools[_type == "tool" && defined(logo)]{ _key, "url": logo.asset->url },
   services[]{ name, icon },
   showreel{ ${videoProjection} },
   categories[]{ "id": _key, name, videos[]{ ${videoProjection} } }
@@ -14,6 +16,17 @@ const siteQuery = defineQuery(`*[_type == "site" && _id == "site"][0]{
 
 type RawVideo = { title?: string | null; src?: string | null; poster?: string | null } | null;
 const toVideo = (v: RawVideo): Video | null => (v?.src ? { title: v.title ?? "", src: v.src, poster: v.poster ?? undefined } : null);
+
+// Tools used to be plain names; now they're { name, logo }. Accept both until scripts/migrate-tools.mts has run.
+type RawTool = string | { _key?: string; name?: string | null } | null;
+const toTools = (raw: RawTool[], logos: { _key: string; url: string }[] | null): Tool[] =>
+  raw
+    .map((t) => {
+      if (typeof t === "string") return { name: t };
+      const logo = logos?.find((l) => l._key === t?._key)?.url;
+      return { name: t?.name ?? "", logo };
+    })
+    .filter((t) => t.name);
 
 // The site's content: from the Sanity dashboard when connected, otherwise src/data/site.ts.
 // Any field left empty in the dashboard falls back to the value in site.ts.
@@ -45,7 +58,7 @@ export async function getContent(): Promise<SiteContent> {
     },
     bio: data.bio?.length ? data.bio : f.bio,
     services: data.services?.length ? data.services.map((s: { name?: string; icon?: string }) => ({ name: s.name ?? "", icon: s.icon ?? "play" })) : f.services,
-    tools: data.tools?.length ? data.tools : f.tools,
+    tools: data.tools?.length ? toTools(data.tools, data.toolLogos) : f.tools,
     showreel: toVideo(data.showreel) ?? f.showreel,
     categories: categories.length ? categories : f.categories,
   };
