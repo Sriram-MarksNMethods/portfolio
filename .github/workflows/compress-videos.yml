@@ -1,0 +1,36 @@
+# Re-encodes new dashboard videos to web-sized full HD (scripts/compress-videos.mts).
+# Triggered by a Sanity webhook on every publish (repository_dispatch "sanity-publish"), once a day as a
+# backup, or by hand from the Actions tab. When nothing is pending it finishes in a few seconds.
+# Repo secrets needed: SANITY_PROJECT_ID, SANITY_WRITE_TOKEN (Editor token).
+name: Compress videos
+
+on:
+  repository_dispatch:
+    types: [sanity-publish]
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: compress-videos
+  cancel-in-progress: false
+
+jobs:
+  compress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      NEXT_PUBLIC_SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+      NEXT_PUBLIC_SANITY_DATASET: production
+      SANITY_WRITE_TOKEN: ${{ secrets.SANITY_WRITE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - id: check
+        run: node scripts/compress-videos.mts --check
+      - if: steps.check.outputs.pending != '0'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - if: steps.check.outputs.pending != '0'
+        run: node scripts/compress-videos.mts

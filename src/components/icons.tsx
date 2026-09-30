@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { Tool } from "@/data/site";
+import { socialPlatforms, type SocialLink } from "@/data/socials";
 
 // Tool logos: single SVG paths from Simple Icons (CC0, simpleicons.org), drawn in currentColor.
 const toolPaths: Record<string, string> = {
@@ -29,6 +30,25 @@ export function ToolLogo({ tool, className }: { tool: Tool; className?: string }
   return (
     <span aria-hidden="true" className={`grid place-items-center border-[1.5px] border-current font-mono text-xs font-semibold ${className ?? ""}`}>
       {tool.name.trim().charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
+// A social network's logo: built in for the listed networks; for "Other", the uploaded logo (in black) or its first letter.
+export function SocialLogo({ social, className }: { social: SocialLink; className?: string }) {
+  if (social.platform !== "other") {
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
+        <path d={socialPlatforms[social.platform].path} />
+      </svg>
+    );
+  }
+  if (social.logo) {
+    return <Image src={social.logo} alt="" width={24} height={24} unoptimized className={`object-contain brightness-0 ${className ?? ""}`} />;
+  }
+  return (
+    <span aria-hidden="true" className={`grid place-items-center border-[1.5px] border-current font-mono text-xs font-semibold ${className ?? ""}`}>
+      {social.name.trim().charAt(0).toUpperCase()}
     </span>
   );
 }

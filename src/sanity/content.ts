@@ -1,5 +1,6 @@
 import { createClient, defineQuery } from "next-sanity";
 import { fallbackContent, type SiteContent, type Tool, type Video } from "@/data/site";
+import { socialPlatforms, type SocialLink } from "@/data/socials";
 import { apiVersion, dataset, isSanityConfigured, projectId } from "./env";
 
 const client = createClient({ projectId: projectId || "unset", dataset, apiVersion, useCdn: true });
@@ -10,6 +11,8 @@ const siteQuery = defineQuery(`*[_type == "site" && _id == "site"][0]{
   tools,
   "toolLogos": tools[_type == "tool" && defined(logo)]{ _key, "url": logo.asset->url },
   services[]{ name, icon },
+  socials[]{ platform, name, url, "logo": logo.asset->url },
+  hero{ "sky": sky.asset->url, "mid": mid.asset->url, "front": front.asset->url },
   showreel{ ${videoProjection} },
   categories[]{ "id": _key, name, videos[]{ ${videoProjection} } }
 }`);
@@ -27,6 +30,17 @@ const toTools = (raw: RawTool[], logos: { _key: string; url: string }[] | null):
       return { name: t?.name ?? "", logo };
     })
     .filter((t) => t.name);
+
+type RawSocial = { platform?: string | null; name?: string | null; url?: string | null; logo?: string | null } | null;
+const toSocials = (raw: RawSocial[]): SocialLink[] =>
+  raw.flatMap((s): SocialLink[] => {
+    if (!s?.url || !s.platform) return [];
+    if (s.platform in socialPlatforms) {
+      const platform = s.platform as keyof typeof socialPlatforms;
+      return [{ platform, name: socialPlatforms[platform].name, url: s.url }];
+    }
+    return s.name ? [{ platform: "other" as const, name: s.name, url: s.url, logo: s.logo ?? undefined }] : [];
+  });
 
 // The site's content: from the Sanity dashboard when connected, otherwise src/data/site.ts.
 // Any field left empty in the dashboard falls back to the value in site.ts.
@@ -58,6 +72,9 @@ export async function getContent(): Promise<SiteContent> {
     },
     bio: data.bio?.length ? data.bio : f.bio,
     services: data.services?.length ? data.services.map((s: { name?: string; icon?: string }) => ({ name: s.name ?? "", icon: s.icon ?? "play" })) : f.services,
+    socials: toSocials(data.socials ?? []),
+    // the dashboard's layers replace all three demo layers as soon as any one is uploaded
+    hero: data.hero?.sky || data.hero?.mid || data.hero?.front ? { sky: data.hero.sky ?? undefined, mid: data.hero.mid ?? undefined, front: data.hero.front ?? undefined } : f.hero,
     tools: data.tools?.length ? toTools(data.tools, data.toolLogos) : f.tools,
     showreel: toVideo(data.showreel) ?? f.showreel,
     categories: categories.length ? categories : f.categories,

@@ -2,6 +2,8 @@
 // is the source of truth and this file is only the fallback / starting content for the seed script.
 // Videos and posters are files in /public/videos (MP4 + JPG).
 
+import type { SocialLink } from "./socials";
+
 export type Video = {
   title: string;
   src: string;
@@ -44,6 +46,14 @@ export const tools = [
   "Figma",
   "Illustrator",
 ] as const;
+
+// Links under the email in Contact. Empty here; the owner adds them in the dashboard.
+export const socials: SocialLink[] = [];
+
+// Hero parallax layers, back to front: sky (furthest), mid (behind the name), front (in front of the name, with the figure).
+// These are demo layers; the owner replaces them in the dashboard (Hero tab). A layer can be left empty.
+export type HeroLayers = { sky?: string; mid?: string; front?: string };
+export const hero: HeroLayers = { sky: "/hero/plx-sky.webp", mid: "/hero/plx-mountain.webp", front: "/hero/plx-ground.webp" };
 
 export const showreel: Video = {
   title: "Showreel 2025",
@@ -95,6 +105,8 @@ export type SiteContent = {
   person: { name: string; role: string; intro: string; email: string };
   bio: string[];
   services: { name: string; icon: string }[];
+  socials: SocialLink[];
+  hero: HeroLayers;
   tools: Tool[];
   showreel: Video;
   categories: Category[];
@@ -104,6 +116,8 @@ export const fallbackContent: SiteContent = {
   person,
   bio,
   services: services.map((s) => ({ ...s })),
+  socials,
+  hero,
   tools: tools.map((name) => ({ name })),
   showreel,
   categories,

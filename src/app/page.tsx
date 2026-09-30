@@ -10,17 +10,17 @@ import { getContent } from "@/sanity/content";
 // One scrolling page: hero → showreel zoom → works → about me → contact.
 // Content comes from the Sanity dashboard (/studio) when connected, else src/data/site.ts.
 export default async function Home() {
-  const { person, bio, services, tools, showreel, categories } = await getContent();
+  const { person, bio, socials, hero, tools, showreel, categories } = await getContent();
   return (
     <>
       <SmoothScroll />
       <Header name={person.name} />
       <main>
-        <Hero person={person} tools={tools} />
+        <Hero person={person} tools={tools} layers={hero} />
         <Showreel showreel={showreel} categories={categories} />
         <Works categories={categories} />
-        <About bio={bio} services={services} />
-        <Contact person={person} />
+        <About bio={bio} />
+        <Contact person={person} socials={socials} />
       </main>
     </>
   );

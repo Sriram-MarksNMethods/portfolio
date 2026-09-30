@@ -4,24 +4,20 @@ import { useEffect, useRef } from "react";
 import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import type { SiteContent, Tool } from "@/data/site";
+import type { HeroLayers, SiteContent, Tool } from "@/data/site";
 import { prefersReducedMotion } from "@/lib/scroll";
 import ToolsMarquee from "./ToolsMarquee";
 
-// Parallax layers, back to front. The name sits between the mountain and the ground,
+// Parallax layers, back to front. The name sits between the mid and front layers,
 // so the ground and the standing figure pass in front of it (the "depth wallpaper" effect).
 // yPercent = how far each layer drifts down while the hero scrolls away.
-const layers = [
-  { src: "/hero/plx-sky.webp", yPercent: 70 },
-  { src: "/hero/plx-mountain.webp", yPercent: 55 },
-  { src: "/hero/plx-ground.webp", yPercent: 10, front: true },
-];
+const drift = { sky: 70, mid: 55, front: 10 };
 
 // Anton capitals average about 0.475em wide. Used to send the name from the server already close to its fitted
 // size and centred, so a slow connection never shows a tiny name that jumps; the fit below then makes it exact.
 const approxSize = (name: string) => `calc((100vw - 40px) / ${(name.length * 0.475).toFixed(2)})`;
 
-export default function Hero({ person, tools }: { person: SiteContent["person"]; tools: Tool[] }) {
+export default function Hero({ person, tools, layers }: { person: SiteContent["person"]; tools: Tool[]; layers: HeroLayers }) {
   const heroRef = useRef<HTMLElement>(null);
   const nameRef = useRef<HTMLHeadingElement>(null);
   const lineRef = useRef<HTMLSpanElement>(null);
@@ -116,11 +112,7 @@ export default function Hero({ person, tools }: { person: SiteContent["person"];
 
   return (
     <section id="hero" ref={heroRef} className="relative h-svh overflow-hidden bg-ink text-paper">
-      {layers.slice(0, 2).map((layer) => (
-        <div key={layer.src} data-y={layer.yPercent} className="absolute inset-0">
-          <Image src={layer.src} alt="" fill priority sizes="100vw" className="object-cover" />
-        </div>
-      ))}
+      {(["sky", "mid"] as const).map((layer) => layers[layer] && <HeroLayer key={layer} src={layers[layer]} yPercent={drift[layer]} />)}
 
       <h1
         ref={nameRef}
@@ -141,11 +133,7 @@ export default function Hero({ person, tools }: { person: SiteContent["person"];
         </span>
       </h1>
 
-      {layers.slice(2).map((layer) => (
-        <div key={layer.src} data-y={layer.yPercent} className="absolute inset-0">
-          <Image src={layer.src} alt="" fill priority sizes="100vw" className="object-cover" />
-        </div>
-      ))}
+      {layers.front && <HeroLayer src={layers.front} yPercent={drift.front} />}
 
       <div ref={introRef} className="absolute top-[calc(var(--bar-h)+24px)] left-5 z-10 grid max-w-[36ch] gap-3">
         <p className="m-0 font-mono text-[13px] tracking-[.06em] uppercase">{person.role}</p>
@@ -156,5 +144,13 @@ export default function Hero({ person, tools }: { person: SiteContent["person"];
         <ToolsMarquee tools={tools} />
       </div>
     </section>
+  );
+}
+
+function HeroLayer({ src, yPercent }: { src: string; yPercent: number }) {
+  return (
+    <div data-y={yPercent} className="absolute inset-0">
+      <Image src={src} alt="" fill priority sizes="100vw" className="object-cover" />
+    </div>
   );
 }

@@ -3,6 +3,8 @@
 import { useActionState, useState } from "react";
 import { sendContact, type ContactState } from "@/app/actions";
 import type { SiteContent } from "@/data/site";
+import type { SocialLink } from "@/data/socials";
+import { SocialLogo } from "./icons";
 import { scrollToSection } from "@/lib/scroll";
 
 const label = "font-mono text-[13px] tracking-[.06em] uppercase";
@@ -10,7 +12,7 @@ const field =
   "w-full rounded-none border-0 border-b-2 border-ink bg-transparent py-2 text-[clamp(18px,1.8vw,24px)] leading-[1.35] text-ink focus-visible:border-signal focus-visible:outline-none";
 const button = "inline-flex items-center gap-3.5 border-2 border-ink px-5 py-3.5 font-mono text-[13px] tracking-[.06em] uppercase hover:bg-ink hover:text-paper";
 
-export default function Contact({ person }: { person: SiteContent["person"] }) {
+export default function Contact({ person, socials }: { person: SiteContent["person"]; socials: SocialLink[] }) {
   const [state, action, pending] = useActionState<ContactState, FormData>(sendContact, { status: "idle", message: "" });
   const [copied, setCopied] = useState("Copy");
 
@@ -41,6 +43,23 @@ export default function Contact({ person }: { person: SiteContent["person"] }) {
               {copied}
             </button>
           </div>
+          {socials.length > 0 && (
+            <ul className="m-0 flex list-none flex-wrap gap-x-7 gap-y-3 p-0">
+              {socials.map((social) => (
+                <li key={social.url}>
+                  <a
+                    href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2.5 py-1 text-[17px] leading-[1.3] underline-offset-4 hover:underline"
+                  >
+                    <SocialLogo social={social} className="size-6 flex-none" />
+                    {social.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <form action={action} className="grid gap-[22px]">
