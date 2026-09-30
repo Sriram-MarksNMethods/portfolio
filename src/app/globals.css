@@ -1,26 +1,48 @@
 @import "tailwindcss";
 
+/* Brutalist "paper and ink" print look; red only for state. */
+@theme {
+  --color-paper: #efeee8;
+  --color-ink: #0e0e0e;
+  --color-signal: #e2371b;
+  --color-mute: #5c5a53;
+  --font-display: var(--font-anton), "Impact", "Arial Narrow", sans-serif;
+  --font-body: var(--font-instrument), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, Menlo, monospace;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bar-h: 68px; /* header height; sections scroll to just below it */
 }
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@media (max-width: 640px) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bar-h: 58px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Lenis smooth scroll */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* The header name starts hidden: on load the big hero name is the name, and it flies up into the header
+   (Hero.tsx shows the header name once it lands). With reduced motion there's no flight, so it just shows. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-bar-name] {
+    opacity: 0;
+  }
+}
+
+@keyframes swap-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
 }

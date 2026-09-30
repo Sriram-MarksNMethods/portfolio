@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/components/Works.tsx"
+        ],
+        "createdAt": "2026-09-30T07:25:57.634Z",
+        "reason": "Claude: Works.tsx L104 is a zero-size CSS play triangle (border-l on size-0), not a card side border"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/components/Showreel.tsx"
+        ],
+        "createdAt": "2026-09-30T08:23:43.661Z",
+        "reason": "Claude: Showreel.tsx L97 is the zero-size CSS play triangle on the Watch full reel button, not a card side border"
+      }
+    ]
+  }
+}
