@@ -34,9 +34,6 @@ export default function Contact({ person, socials }: { person: SiteContent["pers
 
       <div className="grid items-start gap-x-10 gap-y-5 pt-2.5 pb-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         <div className="grid content-start gap-[22px]">
-          <p className="m-0 max-w-[30ch] text-[clamp(19px,2vw,26px)] leading-[1.35]">
-            Got something that needs to move? Tell me what you&apos;re making and when it&apos;s due.
-          </p>
           <div className="flex flex-wrap items-center gap-2.5">
             <code className="font-mono text-[clamp(18px,2.2vw,30px)] leading-tight font-semibold select-all [overflow-wrap:anywhere]">{person.email}</code>
             <button type="button" onClick={copyEmail} className={`${button} px-3.5 py-2.5`}>
