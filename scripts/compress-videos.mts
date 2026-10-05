@@ -64,12 +64,14 @@ async function encode(input: string, output: string, p: Probe) {
     p.width >= p.height
       ? `scale='min(${MAX_LONG_SIDE},iw)':-2`
       : `scale=-2:'min(${MAX_LONG_SIDE},ih)'`;
+  const maxrate = Math.min(MAX_BITRATE, p.bitrate || MAX_BITRATE);
   await run("ffmpeg", [
     "-y", "-v", "error", "-i", input,
     "-map", "0:v:0", ...(p.hasAudio ? ["-map", "0:a:0"] : []),
     "-vf", `${scale}:flags=lanczos`,
-    // CRF 21 keeps sharp motion-graphics edges; the maxrate cap keeps busy footage from ballooning.
-    "-c:v", "libx264", "-preset", "medium", "-crf", "21", "-maxrate", "10M", "-bufsize", "20M",
+    // CRF 21 keeps sharp motion-graphics edges; the maxrate cap keeps busy footage from ballooning, and never
+    // goes above the source's own bitrate (a low-bitrate 4K file would otherwise come out bigger at 1080p).
+    "-c:v", "libx264", "-preset", "medium", "-crf", "21", "-maxrate", `${maxrate}`, "-bufsize", `${maxrate * 2}`,
     "-profile:v", "high", "-pix_fmt", "yuv420p",
     ...(p.hasAudio ? ["-c:a", "aac", "-b:a", "160k"] : []),
     "-movflags", "+faststart",
@@ -103,8 +105,9 @@ async function compress(input: string, output: string): Promise<string | null> {
   console.log(`  encoding ${p.width}×${p.height} ${p.codec}…`);
   await encode(input, output, p);
   const [before, after] = [(await stat(input)).size, (await stat(output)).size];
-  // An H.264 MP4 that didn't get smaller is kept as it is; anything else (ProRes, HEVC, 4K…) always gets the web version.
-  if (after >= before && p.codec === "h264" && p.container.includes("mp4")) {
+  // A full-HD-or-smaller H.264 MP4 that didn't get smaller is kept as it is; anything else (ProRes, HEVC, 4K…)
+  // always gets the web version.
+  if (after >= before && p.codec === "h264" && p.container.includes("mp4") && Math.max(p.width, p.height) <= MAX_LONG_SIDE) {
     console.log(`  the web version wasn't smaller (${mb(after)} vs ${mb(before)}), keeping the original`);
     return null;
   }
