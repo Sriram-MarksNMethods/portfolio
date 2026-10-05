@@ -139,7 +139,7 @@ export default function Hero({ person, tools, layers }: { person: SiteContent["p
 
       {layers.front && <HeroLayer src={layers.front} yPercent={drift.front} />}
 
-      <div ref={introRef} className="absolute inset-x-5 top-[calc(var(--bar-h)+24px)] z-10">
+      <div ref={introRef} className="absolute inset-x-5 top-[calc(var(--bar-h)+6px)] z-10 sm:top-[calc(var(--bar-h)+24px)]">
         {/* one line on phones too: the type shrinks with the screen below 394px */}
         <p className="m-0 font-mono text-[min(13px,3.3vw)] tracking-[.06em] whitespace-nowrap uppercase sm:text-[13px]">{person.role}</p>
       </div>
