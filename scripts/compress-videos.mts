@@ -3,7 +3,9 @@
 // For each video file used on the site (showreel + works) that hasn't been done yet, it downloads the upload,
 // re-encodes it with ffmpeg to full HD (long side 1920 px: 1920×1080 landscape, 1080×1920 vertical; smaller
 // videos keep their size) as H.264 MP4 with fast start, uploads the result and points the site at it.
-// Videos that are already web-sized are only marked as done. Runs on GitHub Actions after each publish
+// Videos that are already web-sized are only marked as done. It then makes a small silent preview of each video
+// (short side 640 px, about 1.5 Mbit/s) for the grid tiles, and saves its URL on the video's file as `previewUrl`.
+// Runs on GitHub Actions after each publish
 // (.github/workflows/compress-videos.yml); you can also run it yourself:
 //
 //   node --env-file=.env.local scripts/compress-videos.mts               compress everything that's pending
@@ -75,6 +77,20 @@ async function encode(input: string, output: string, p: Probe) {
   ]);
 }
 
+// The preview that loops in a grid tile: short side at most 640 px, no sound, a few hundred KB per 10 s.
+async function encodePreview(input: string, output: string, p: Probe) {
+  const scale = p.width >= p.height ? `scale=-2:'min(640,ih)'` : `scale='min(640,iw)':-2`;
+  await run("ffmpeg", [
+    "-y", "-v", "error", "-i", input,
+    "-map", "0:v:0", "-an",
+    "-vf", `${scale}:flags=lanczos`,
+    "-c:v", "libx264", "-preset", "medium", "-crf", "26", "-maxrate", "1500k", "-bufsize", "3M",
+    "-profile:v", "high", "-pix_fmt", "yuv420p",
+    "-movflags", "+faststart",
+    output,
+  ]);
+}
+
 const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 // Compresses one file. Returns the path of the smaller web version, or null if the original should be kept.
@@ -141,7 +157,7 @@ const mutate = (mutations: object[]) =>
   sanity(`/data/mutate/${dataset}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mutations }) });
 
 type SiteDoc = { _id: string; _rev: string; showreel?: unknown; categories?: unknown };
-type Asset = { _id: string; url: string; size: number; originalFilename?: string; webOptimized?: boolean };
+type Asset = { _id: string; url: string; size: number; originalFilename?: string; webOptimized?: boolean; previewUrl?: string };
 
 // Every file asset referenced from the published site doc and its draft (video fields are the only files).
 const fileRefs = (value: unknown, found = new Set<string>()): Set<string> => {
@@ -154,17 +170,24 @@ const fileRefs = (value: unknown, found = new Set<string>()): Set<string> => {
   return found;
 };
 
-const docs = await query<SiteDoc[]>(`*[_id in ["site", "drafts.site"]]{ _id, _rev, showreel, categories }`);
-const ids = [...new Set(docs.flatMap((d) => [...fileRefs(d)]))];
-const pending = (await query<Asset[]>(`*[_id in $ids]{ _id, url, size, originalFilename, webOptimized }`, { ids })).filter((a) => !a.webOptimized);
+// The file assets the site uses right now (published + draft).
+const usedAssets = async () => {
+  const docs = await query<SiteDoc[]>(`*[_id in ["site", "drafts.site"]]{ _id, _rev, showreel, categories }`);
+  const ids = [...new Set(docs.flatMap((d) => [...fileRefs(d)]))];
+  return query<Asset[]>(`*[_id in $ids]{ _id, url, size, originalFilename, webOptimized, previewUrl }`, { ids });
+};
+const assets = await usedAssets();
+const pending = assets.filter((a) => !a.webOptimized);
+const previewsPending = assets.filter((a) => !a.previewUrl).length;
 
 if (check) {
-  console.log(`${pending.length} video(s) pending`);
-  if (process.env.GITHUB_OUTPUT) await import("node:fs/promises").then((fs) => fs.appendFile(process.env.GITHUB_OUTPUT!, `pending=${pending.length}\n`));
+  console.log(`${pending.length} video(s) to web-size, ${previewsPending} preview(s) to make`);
+  const total = pending.length + previewsPending;
+  if (process.env.GITHUB_OUTPUT) await import("node:fs/promises").then((fs) => fs.appendFile(process.env.GITHUB_OUTPUT!, `pending=${total}\n`));
   process.exit(0);
 }
-if (!pending.length) {
-  console.log("All videos are already web-sized.");
+if (!pending.length && !previewsPending) {
+  console.log("All videos are web-sized and have previews.");
   process.exit(0);
 }
 
@@ -222,8 +245,38 @@ try {
       await rm(join(work, "out.mp4"), { force: true });
     }
   }
+
+  // Previews, for the files the site uses after the pass above (new web versions included).
+  const needPreview = (dryRun ? assets : await usedAssets()).filter((a) => !a.previewUrl);
+  for (const asset of needPreview) {
+    const name = asset.originalFilename ?? asset._id;
+    console.log(`preview: ${name}`);
+    if (dryRun) continue;
+    try {
+      const input = join(work, "in");
+      const res = await fetch(asset.url);
+      if (!res.ok || !res.body) throw new Error(`download failed: ${res.status}`);
+      await pipeline(Readable.fromWeb(res.body as import("node:stream/web").ReadableStream), createWriteStream(input));
+      const output = join(work, "preview.mp4");
+      await encodePreview(input, output, await probe(input));
+      const filename = `${name.replace(/\.[^.]+$/, "").replace(/-1080p$/, "")}-preview.mp4`;
+      const uploaded = await sanity<{ document: { _id: string; url: string } }>(`/assets/files/${dataset}?filename=${encodeURIComponent(filename)}`, {
+        method: "POST",
+        headers: { "Content-Type": "video/mp4" },
+        body: await readFile(output),
+      });
+      await mutate([{ patch: { id: asset._id, set: { previewUrl: uploaded.document.url } } }]);
+      console.log(`  ${mb(asset.size)} → ${mb((await stat(output)).size)}`);
+    } catch (error) {
+      failed++;
+      console.error(`  failed: ${(error as Error).message}`);
+    } finally {
+      await rm(join(work, "in"), { force: true });
+      await rm(join(work, "preview.mp4"), { force: true });
+    }
+  }
 } finally {
   await rm(work, { recursive: true, force: true });
 }
-if (dryRun) console.log(`Dry run: ${pending.length} video(s) would be processed.`);
+if (dryRun) console.log(`Dry run: ${pending.length} video(s) to web-size, ${previewsPending} preview(s) to make.`);
 if (failed) process.exit(1);

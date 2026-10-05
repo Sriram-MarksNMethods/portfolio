@@ -5,7 +5,7 @@ import { apiVersion, dataset, isSanityConfigured, projectId } from "./env";
 
 const client = createClient({ projectId: projectId || "unset", dataset, apiVersion, useCdn: true });
 
-const videoProjection = `title, "src": coalesce(video.asset->url, videoUrl), "poster": poster.asset->url`;
+const videoProjection = `title, "src": coalesce(video.asset->url, videoUrl), "poster": poster.asset->url, "preview": video.asset->previewUrl`;
 const siteQuery = defineQuery(`*[_type == "site" && _id == "site"][0]{
   name, role, intro, email, bio,
   tools,
@@ -17,8 +17,9 @@ const siteQuery = defineQuery(`*[_type == "site" && _id == "site"][0]{
   categories[]{ "id": _key, name, videos[]{ ${videoProjection} } }
 }`);
 
-type RawVideo = { title?: string | null; src?: string | null; poster?: string | null } | null;
-const toVideo = (v: RawVideo): Video | null => (v?.src ? { title: v.title ?? "", src: v.src, poster: v.poster ?? undefined } : null);
+type RawVideo = { title?: string | null; src?: string | null; poster?: string | null; preview?: string | null } | null;
+const toVideo = (v: RawVideo): Video | null =>
+  v?.src ? { title: v.title ?? "", src: v.src, poster: v.poster ?? undefined, preview: v.preview ?? undefined } : null;
 
 // Tools used to be plain names; now they're { name, logo }. Accept both until scripts/migrate-tools.mts has run.
 type RawTool = string | { _key?: string; name?: string | null } | null;

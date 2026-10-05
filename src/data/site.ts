@@ -8,6 +8,7 @@ export type Video = {
   title: string;
   src: string;
   poster?: string;
+  preview?: string; // small, silent copy that loops in the grid tiles (made by scripts/compress-videos.mts)
   duration?: number; // seconds; optional, the player reads the real length from the file
 };
 

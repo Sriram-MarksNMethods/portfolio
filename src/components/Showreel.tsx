@@ -54,13 +54,20 @@ export default function Showreel({ showreel, categories }: { showreel: Video; ca
     return () => ctx.revert();
   }, [animated]);
 
-  // the inline reel only plays while it's on screen
+  // the inline reel only plays while its section is on screen and the player is closed
+  const playerOpen = open !== null;
   useEffect(() => {
     const reel = reelRef.current!;
-    const observer = new IntersectionObserver(([entry]) => (entry.isIntersecting ? reel.play().catch(() => {}) : reel.pause()));
-    observer.observe(reel);
+    if (playerOpen) {
+      reel.pause();
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => (entry.isIntersecting ? reel.play().catch(() => {}) : reel.pause()), {
+      rootMargin: "-1px", // the section starts right at the hero's bottom edge; touching it isn't being on screen
+    });
+    observer.observe(sectionRef.current ?? reel);
     return () => observer.disconnect();
-  }, [animated]);
+  }, [animated, playerOpen]);
 
   const openReel = () => setOpen({ videos: [showreel], index: 0, label: "Showreel", origin: null });
 
@@ -128,7 +135,7 @@ export default function Showreel({ showreel, categories }: { showreel: Video; ca
         </section>
       ) : (
         // reduced motion: just the reel at 16:9 with its caption underneath
-        <section aria-label="Showreel" className="px-5 pt-5">
+        <section ref={sectionRef} aria-label="Showreel" className="px-5 pt-5">
           <div className="-mx-5 aspect-video max-h-[92vh]">{reel}</div>
           <div className="pt-3">{caption}</div>
         </section>

@@ -18,19 +18,27 @@ export default function Works({ categories }: { categories: Category[] }) {
   // real lengths, read from each file as it loads (the dashboard doesn't ask for them)
   const [lengths, setLengths] = useState<Record<string, number>>({});
 
-  // play tiles only while they're visible
+  // Play tiles only while they're mostly on screen, and none while the player is open: every playing video
+  // is decoded at once, and phones can only decode a few in hardware before everything starts to stutter.
+  const playerOpen = open !== null;
   useEffect(() => {
     const videos = gridRef.current?.querySelectorAll("video") ?? [];
-    const observer = new IntersectionObserver((entries) =>
-      entries.forEach((entry) => {
-        const video = entry.target as HTMLVideoElement;
-        if (entry.isIntersecting) video.play().catch(() => {});
-        else video.pause();
-      }),
+    if (playerOpen) {
+      videos.forEach((video) => video.pause());
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => {
+          const video = entry.target as HTMLVideoElement;
+          if (entry.intersectionRatio >= 0.5) video.play().catch(() => {});
+          else video.pause();
+        }),
+      { threshold: [0, 0.5] },
     );
     videos.forEach((video) => observer.observe(video));
     return () => observer.disconnect();
-  }, [active]);
+  }, [active, playerOpen]);
 
   // arrow keys move between tabs (standard tablist behaviour)
   const onTabKey = (e: React.KeyboardEvent, i: number) => {
@@ -97,7 +105,7 @@ export default function Works({ categories }: { categories: Category[] }) {
           >
             <span className="relative block aspect-[4/3] overflow-hidden bg-black">
               <video
-                src={video.src}
+                src={video.preview ?? video.src}
                 poster={video.poster}
                 muted
                 loop

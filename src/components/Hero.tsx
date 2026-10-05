@@ -23,14 +23,15 @@ export default function Hero({ person, tools, layers }: { person: SiteContent["p
   const lineRef = useRef<HTMLSpanElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
 
-  // Fit the name to the full width on one line, then centre it vertically.
+  // Fit the name to the full width on one line, then centre it vertically. --name-top is shared with the
+  // role line, which sits just above the name on phones.
   useEffect(() => {
     const fit = () => {
       const hero = heroRef.current, name = nameRef.current, line = lineRef.current;
       if (!hero || !name || !line) return;
       line.style.fontSize = "100px";
       line.style.fontSize = `${((100 * name.clientWidth) / line.scrollWidth) * 0.995}px`;
-      name.style.top = `${(hero.clientHeight - name.offsetHeight) / 2}px`;
+      hero.style.setProperty("--name-top", `${(hero.clientHeight - name.offsetHeight) / 2}px`);
       ScrollTrigger.refresh();
     };
     document.fonts.ready.then(fit);
@@ -111,14 +112,18 @@ export default function Hero({ person, tools, layers }: { person: SiteContent["p
   }, []);
 
   return (
-    <section id="hero" ref={heroRef} className="relative h-svh overflow-hidden bg-ink text-paper">
+    <section
+      id="hero"
+      ref={heroRef}
+      style={{ "--name-top": `calc(50% - ${approxSize(person.name)} * 0.45)` } as React.CSSProperties}
+      className="relative h-svh overflow-hidden bg-ink text-paper"
+    >
       {(["sky", "mid"] as const).map((layer) => layers[layer] && <HeroLayer key={layer} src={layers[layer]} yPercent={drift[layer]} />)}
 
       <h1
         ref={nameRef}
         aria-label={person.name}
-        style={{ top: `calc(50% - ${approxSize(person.name)} * 0.45)` }}
-        className="absolute inset-x-5 m-0 font-display leading-[.9] uppercase"
+        className="absolute inset-x-5 top-(--name-top) m-0 font-display leading-[.9] uppercase"
       >
         <span ref={lineRef} style={{ fontSize: approxSize(person.name) }} className="block w-max whitespace-nowrap" aria-hidden="true">
           {[...person.name].map((ch, i) => (
@@ -135,9 +140,12 @@ export default function Hero({ person, tools, layers }: { person: SiteContent["p
 
       {layers.front && <HeroLayer src={layers.front} yPercent={drift.front} />}
 
-      <div ref={introRef} className="absolute top-[calc(var(--bar-h)+24px)] left-5 z-10 grid max-w-[36ch] gap-3">
-        <p className="m-0 font-mono text-[13px] tracking-[.06em] uppercase">{person.role}</p>
-        <p className="m-0 text-[clamp(17px,1.7vw,22px)] leading-[1.3] [@media(max-height:500px)]:hidden">{person.intro}</p>
+      {/* phones: centred in the gap between the figure's arms and the name; larger screens: top left */}
+      <div
+        ref={introRef}
+        className="absolute inset-x-5 top-[calc(var(--name-top)-5%)] z-10 -translate-y-1/2 text-center sm:top-[calc(var(--bar-h)+24px)] sm:right-auto sm:max-w-[36ch] sm:translate-y-0 sm:text-left"
+      >
+        <p className="m-0 font-mono text-[min(13px,3.3vw)] tracking-[.06em] uppercase sm:text-[13px]">{person.role}</p>
       </div>
 
       <div className="absolute inset-x-0 bottom-4 z-10 sm:bottom-5">
@@ -150,7 +158,8 @@ export default function Hero({ person, tools, layers }: { person: SiteContent["p
 function HeroLayer({ src, yPercent }: { src: string; yPercent: number }) {
   return (
     <div data-y={yPercent} className="absolute inset-0">
-      <Image src={src} alt="" fill priority sizes="100vw" className="object-cover" />
+      {/* object-cover on a tall phone screen shows a 16:9 layer at the screen's height, about 1.8× its width */}
+      <Image src={src} alt="" fill priority sizes="max(100vw, 178vh)" className="object-cover" />
     </div>
   );
 }
