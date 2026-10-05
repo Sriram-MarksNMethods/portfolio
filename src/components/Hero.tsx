@@ -22,10 +22,8 @@ export default function Hero({ person, tools, layers }: { person: SiteContent["p
   const nameRef = useRef<HTMLHeadingElement>(null);
   const lineRef = useRef<HTMLSpanElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
-  const roleParts = person.role.split(/\s*&\s*/);
 
-  // Fit the name to the full width on one line, then centre it vertically. --name-top is shared with the
-  // role line, which sits just above the name on phones.
+  // Fit the name to the full width on one line, then centre it vertically.
   useEffect(() => {
     const fit = () => {
       const hero = heroRef.current, name = nameRef.current, line = lineRef.current;
@@ -141,23 +139,9 @@ export default function Hero({ person, tools, layers }: { person: SiteContent["p
 
       {layers.front && <HeroLayer src={layers.front} yPercent={drift.front} />}
 
-      {/* phones: in the gap between the figure's arms and the name, split either side of him at the "&"
-          (which is hidden); larger screens: the whole role, top left */}
-      <div
-        ref={introRef}
-        className="absolute inset-x-5 top-[calc(var(--name-top)-5%)] z-10 -translate-y-1/2 text-center sm:top-[calc(var(--bar-h)+24px)] sm:right-auto sm:max-w-[36ch] sm:translate-y-0 sm:text-left"
-      >
-        <p className="m-0 font-mono text-[min(13px,3.3vw)] tracking-[.06em] uppercase max-sm:flex max-sm:items-end max-sm:justify-between sm:text-[13px]">
-          {roleParts.length === 2 ? (
-            <>
-              <span className="max-sm:max-w-[28%] max-sm:text-left">{roleParts[0]}</span>
-              <span className="max-sm:hidden"> &amp; </span>
-              <span className="max-sm:max-w-[28%] max-sm:text-right">{roleParts[1]}</span>
-            </>
-          ) : (
-            <span className="max-sm:w-full">{person.role}</span>
-          )}
-        </p>
+      <div ref={introRef} className="absolute inset-x-5 top-[calc(var(--bar-h)+24px)] z-10">
+        {/* one line on phones too: the type shrinks with the screen below 394px */}
+        <p className="m-0 font-mono text-[min(13px,3.3vw)] tracking-[.06em] whitespace-nowrap uppercase sm:text-[13px]">{person.role}</p>
       </div>
 
       <div className="absolute inset-x-0 bottom-4 z-10 sm:bottom-5">
