@@ -7,10 +7,12 @@ import Lenis from "lenis";
 import { prefersReducedMotion, setLenis } from "@/lib/scroll";
 
 // Lenis smooth scrolling, driven by GSAP's ticker so ScrollTrigger animations stay in sync.
+// Touch screens keep native scrolling: Lenis doesn't smooth touch anyway, it only adds work every frame,
+// and while stopped (player open) it cancels every touchmove, which broke the player's seek bar on phones.
 export default function SmoothScroll() {
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
-    if (prefersReducedMotion()) return;
+    if (prefersReducedMotion() || matchMedia("(pointer: coarse)").matches) return;
 
     const lenis = new Lenis();
     const raf = (time: number) => lenis.raf(time * 1000);

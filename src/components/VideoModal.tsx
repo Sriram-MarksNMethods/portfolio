@@ -30,6 +30,8 @@ export default function VideoModal({ videos, index, label, origin, onIndexChange
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // while a finger or mouse is on the seek bar, playback's own time updates would snap the thumb back
+  const scrubbing = useRef(false);
   const [openedFrom] = useState(origin); // the tile it grew out of; focus goes back there on close
   const video = videos[index];
   const go = (step: number) => onIndexChange((index + step + videos.length) % videos.length);
@@ -91,6 +93,7 @@ export default function VideoModal({ videos, index, label, origin, onIndexChange
       role="dialog"
       aria-modal="true"
       aria-label={video.title}
+      data-lenis-prevent // a stopped Lenis cancels touch moves, which would freeze the seek bar
       className="fixed inset-0 z-40 grid grid-rows-[auto_minmax(0,1fr)_auto] gap-3 overflow-hidden bg-ink px-5 pt-[calc(8px+env(safe-area-inset-top))] pb-[calc(18px+env(safe-area-inset-bottom))] text-paper"
     >
       <div className="flex items-center justify-between gap-3">
@@ -113,13 +116,16 @@ export default function VideoModal({ videos, index, label, origin, onIndexChange
         onClick={togglePlay}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
-        onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+        onTimeUpdate={(e) => {
+          if (!scrubbing.current) setTime(e.currentTarget.currentTime);
+        }}
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
         className="size-full min-h-0 cursor-pointer object-contain"
       />
 
       <div className="grid gap-2">
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4">
+        {/* phones: Play and the timecode on one row, the seek bar full width under them */}
+        <div className="grid grid-cols-[auto_auto] items-center justify-between gap-x-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:justify-normal">
           <button type="button" onClick={togglePlay} className={`${button} min-w-16 text-left`}>
             {playing ? "Pause" : "Play"}
           </button>
@@ -130,12 +136,24 @@ export default function VideoModal({ videos, index, label, origin, onIndexChange
             max={duration || 1}
             step={0.01}
             value={time}
+            onPointerDown={() => (scrubbing.current = true)}
+            onPointerUp={(e) => {
+              scrubbing.current = false;
+              const v = videoRef.current;
+              if (v) v.currentTime = Number(e.currentTarget.value);
+            }}
+            onPointerCancel={() => (scrubbing.current = false)}
+            onBlur={() => (scrubbing.current = false)}
             onChange={(e) => {
               const v = videoRef.current;
-              if (v) v.currentTime = Number(e.target.value);
-              setTime(Number(e.target.value));
+              const to = Number(e.target.value);
+              setTime(to);
+              if (!v) return;
+              // mid-drag, jump to the nearest keyframe (fast) where the browser can; exact frame once let go
+              if (scrubbing.current && "fastSeek" in v) v.fastSeek(to);
+              else v.currentTime = to;
             }}
-            className="h-8 w-full accent-signal"
+            className="order-last col-span-2 h-10 w-full touch-none accent-signal sm:order-none sm:col-span-1 sm:h-8"
           />
           <span className="font-mono text-xs tabular-nums">
             {timecode(time)} / {timecode(duration)}

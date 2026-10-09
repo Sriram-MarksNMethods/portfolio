@@ -20,24 +20,39 @@ export default function Works({ categories }: { categories: Category[] }) {
 
   // Play tiles only while they're mostly on screen, and none while the player is open: every playing video
   // is decoded at once, and phones can only decode a few in hardware before everything starts to stutter.
+  // On touch screens only the single most visible tile plays, picked once the scroll settles.
   const playerOpen = open !== null;
   useEffect(() => {
-    const videos = gridRef.current?.querySelectorAll("video") ?? [];
+    const videos = [...(gridRef.current?.querySelectorAll("video") ?? [])];
     if (playerOpen) {
       videos.forEach((video) => video.pause());
       return;
     }
+    const onlyOne = matchMedia("(pointer: coarse)").matches;
+    const ratios = new Map<HTMLVideoElement, number>();
+    let settle = 0;
+    const update = () => {
+      const visible = videos.filter((video) => (ratios.get(video) ?? 0) >= 0.5);
+      const playing = onlyOne
+        ? visible.sort((a, b) => (ratios.get(b) ?? 0) - (ratios.get(a) ?? 0)).slice(0, 1)
+        : visible;
+      videos.forEach((video) => (playing.includes(video) ? video.play().catch(() => {}) : video.pause()));
+    };
     const observer = new IntersectionObserver(
-      (entries) =>
-        entries.forEach((entry) => {
-          const video = entry.target as HTMLVideoElement;
-          if (entry.intersectionRatio >= 0.5) video.play().catch(() => {});
-          else video.pause();
-        }),
-      { threshold: [0, 0.5] },
+      (entries) => {
+        entries.forEach((entry) => ratios.set(entry.target as HTMLVideoElement, entry.intersectionRatio));
+        // starting a video mid-swipe costs a frame or two on phones, so wait until the scroll stops
+        if (!onlyOne) return update();
+        clearTimeout(settle);
+        settle = window.setTimeout(update, 150);
+      },
+      { threshold: [0, 0.25, 0.5, 0.75, 1] },
     );
     videos.forEach((video) => observer.observe(video));
-    return () => observer.disconnect();
+    return () => {
+      clearTimeout(settle);
+      observer.disconnect();
+    };
   }, [active, playerOpen]);
 
   // arrow keys move between tabs (standard tablist behaviour)

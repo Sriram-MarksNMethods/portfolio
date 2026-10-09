@@ -18,8 +18,11 @@ const siteQuery = defineQuery(`*[_type == "site" && _id == "site"][0]{
 }`);
 
 type RawVideo = { title?: string | null; src?: string | null; poster?: string | null; preview?: string | null } | null;
+// Covers are uploaded as full-size PNGs (often 3000px, ~2 MB). Ask Sanity's image CDN for a 1600px WebP/AVIF instead:
+// phones were downloading and decoding every one at full size.
+const posterUrl = (url: string | null | undefined) => (url ? `${url}?w=1600&fit=max&auto=format&q=75` : undefined);
 const toVideo = (v: RawVideo): Video | null =>
-  v?.src ? { title: v.title ?? "", src: v.src, poster: v.poster ?? undefined, preview: v.preview ?? undefined } : null;
+  v?.src ? { title: v.title ?? "", src: v.src, poster: posterUrl(v.poster), preview: v.preview ?? undefined } : null;
 
 // Tools used to be plain names; now they're { name, logo }. Accept both until scripts/migrate-tools.mts has run.
 type RawTool = string | { _key?: string; name?: string | null } | null;

@@ -36,7 +36,9 @@ export default function Showreel({ showreel, categories }: { showreel: Video; ca
   const reelRef = useRef<HTMLVideoElement>(null);
   const captionRef = useRef<HTMLDivElement>(null);
   const animated = !useReducedMotion();
-  const [time, setTime] = useState(0);
+  // the running timecode is written straight to the DOM: a React update ~4× a second re-rendered the whole
+  // section (stills included) in the middle of the scroll zoom
+  const timeRef = useRef<HTMLSpanElement>(null);
   const [length, setLength] = useState(showreel.duration ?? 0);
   const [open, setOpen] = useState<Open | null>(null);
 
@@ -82,7 +84,9 @@ export default function Showreel({ showreel, categories }: { showreel: Video; ca
       preload="metadata"
       aria-label="Showreel preview"
       onClick={openReel}
-      onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+      onTimeUpdate={(e) => {
+        if (timeRef.current) timeRef.current.textContent = timecode(e.currentTarget.currentTime);
+      }}
       onLoadedMetadata={(e) => setLength(e.currentTarget.duration)}
       className="block size-full cursor-pointer bg-black object-cover"
     />
@@ -93,7 +97,7 @@ export default function Showreel({ showreel, categories }: { showreel: Video; ca
       <p className="m-0 flex flex-wrap gap-x-4 gap-y-1 bg-ink px-3 py-2.5 font-mono text-[13px] tracking-[.06em] text-paper uppercase tabular-nums">
         <span>{showreel.title}</span>
         <span>
-          {timecode(time)} / {timecode(length)}
+          <span ref={timeRef}>{timecode(0)}</span> / {timecode(length)}
         </span>
       </p>
       <button

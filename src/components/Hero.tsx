@@ -25,7 +25,14 @@ export default function Hero({ person, tools, layers }: { person: SiteContent["p
 
   // Fit the name to the full width on one line, then centre it vertically.
   useEffect(() => {
+    // Phones fire resize mid-scroll whenever the address bar slides in or out. Refitting then (and refreshing every
+    // ScrollTrigger) stalled the scroll, and the name only depends on the width, so skip height-only resizes.
+    let fittedWidth = 0;
+    const onResize = () => {
+      if (window.innerWidth !== fittedWidth) fit();
+    };
     const fit = () => {
+      fittedWidth = window.innerWidth;
       const hero = heroRef.current, name = nameRef.current, line = lineRef.current;
       if (!hero || !name || !line) return;
       line.style.fontSize = "100px";
@@ -34,8 +41,8 @@ export default function Hero({ person, tools, layers }: { person: SiteContent["p
       ScrollTrigger.refresh();
     };
     document.fonts.ready.then(fit);
-    window.addEventListener("resize", fit);
-    return () => window.removeEventListener("resize", fit);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, [person.name]);
 
   useEffect(() => {
@@ -153,7 +160,7 @@ export default function Hero({ person, tools, layers }: { person: SiteContent["p
 
 function HeroLayer({ src, yPercent }: { src: string; yPercent: number }) {
   return (
-    <div data-y={yPercent} className="absolute inset-0">
+    <div data-y={yPercent} className="absolute inset-0 will-change-transform">
       {/* object-cover on a tall phone screen shows a 16:9 layer at the screen's height, about 1.8× its width */}
       <Image src={src} alt="" fill priority sizes="max(100vw, 178vh)" className="object-cover" />
     </div>
