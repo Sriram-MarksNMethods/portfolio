@@ -52,7 +52,7 @@ export default function Works({ categories }: { categories: Category[] }) {
   return (
     <section id="works" className="px-5">
       <div className="mt-[70px] flex items-baseline justify-between gap-3 border-t-[3px] border-ink pt-2.5 pb-[18px]">
-        <h2 className="m-0 font-display text-[clamp(34px,5vw,64px)] leading-[.9] uppercase">Frame by frame</h2>
+        <h2 className="m-0 font-display text-[clamp(34px,5vw,64px)] leading-[.9] uppercase">My works</h2>
         <span className="font-mono text-[13px] tracking-[.06em] uppercase">{String(category.videos.length).padStart(2, "0")} videos</span>
       </div>
 
