@@ -1,6 +1,7 @@
 # Handoff: motion designer portfolio
 
 ## The real site (built 2026-09-30)
+- **2026-10-12 Safari fixes (uncommitted):** player video sits in a `relative min-h-0` wrapper (Safari let the grid-item video spill over the controls, blocking Prev/Next/Fullscreen); seek bar drawn by hand (Safari's track was invisible on ink); Fullscreen falls back to `video.webkitEnterFullscreen()` on iPhone (no element fullscreen there); player starts as "Play" until the video really plays; Works reads tile lengths already loaded before hydration (Safari showed 00:00). Tested in Playwright WebKit (iPhone 14 + 1440 desktop) and Chromium. WebKit runs here via libs copied into `~/.cache/ms-playwright/webkit-2248/minibrowser-wpe/lib` + `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1`.
 - Branch `feat/site-build`, **not committed yet**. `npm run dev`, or `npm run build && npx next start`.
 - Content: everything editable is in `src/data/site.ts` (name, intro, bio, services, tools, showreel, categories → videos).
 - Media: `public/videos/*.mp4` + `*.jpg` posters (placeholders rendered from the prototype canvas animations: Playwright frames → ffmpeg; showreel 18s cuts every 3s), `public/hero/plx-*.webp` (Osmo demo layers, replace per the layer brief).

@@ -55,6 +55,13 @@ export default function Works({ categories }: { categories: Category[] }) {
     };
   }, [active, playerOpen]);
 
+  // Safari often reads a tile's length before the page is interactive, so the load event above is missed: catch up here
+  useEffect(() => {
+    const videos = [...(gridRef.current?.querySelectorAll("video") ?? [])];
+    const ready = category.videos.flatMap((video, i) => (videos[i]?.readyState ? [[video.src, videos[i].duration] as const] : []));
+    if (ready.length) setLengths((prev) => ({ ...prev, ...Object.fromEntries(ready) }));
+  }, [category]);
+
   // arrow keys move between tabs (standard tablist behaviour)
   const onTabKey = (e: React.KeyboardEvent, i: number) => {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;

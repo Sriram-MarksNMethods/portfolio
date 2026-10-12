@@ -26,7 +26,8 @@ export default function VideoModal({ videos, index, label, origin, onIndexChange
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const [playing, setPlaying] = useState(true);
+  // starts false: iPhones can refuse to autoplay a video with sound, and the button should then say Play
+  const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -66,9 +67,17 @@ export default function VideoModal({ videos, index, label, origin, onIndexChange
     else v.pause();
   };
 
+  // iPhones can't put a page element full screen, only the video itself (in their own player)
   const toggleFullscreen = () => {
+    const root = rootRef.current;
+    const v = videoRef.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    else rootRef.current?.requestFullscreen().catch(() => {});
+    else if (root?.requestFullscreen) root.requestFullscreen().catch(() => {});
+    else {
+      try {
+        v?.webkitEnterFullscreen?.(); // throws if the video hasn't loaded yet
+      } catch {}
+    }
   };
 
   useEffect(() => {
@@ -105,23 +114,27 @@ export default function VideoModal({ videos, index, label, origin, onIndexChange
         </button>
       </div>
 
-      <video
-        ref={videoRef}
-        key={video.src}
-        src={video.src}
-        poster={video.poster}
-        autoPlay
-        playsInline
-        loop
-        onClick={togglePlay}
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
-        onTimeUpdate={(e) => {
-          if (!scrubbing.current) setTime(e.currentTarget.currentTime);
-        }}
-        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-        className="size-full min-h-0 cursor-pointer object-contain"
-      />
+      {/* Safari sizes a video grid item by the video, not the row, so it spilled over the controls; positioned
+          inside a wrapper it fills exactly the space the row gives it */}
+      <div className="relative min-h-0">
+        <video
+          ref={videoRef}
+          key={video.src}
+          src={video.src}
+          poster={video.poster}
+          autoPlay
+          playsInline
+          loop
+          onClick={togglePlay}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onTimeUpdate={(e) => {
+            if (!scrubbing.current) setTime(e.currentTarget.currentTime);
+          }}
+          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+          className="absolute inset-0 size-full cursor-pointer object-contain"
+        />
+      </div>
 
       <div className="grid gap-2">
         {/* phones: Play and the timecode on one row, the seek bar full width under them */}
@@ -153,7 +166,9 @@ export default function VideoModal({ videos, index, label, origin, onIndexChange
               if (scrubbing.current && "fastSeek" in v) v.fastSeek(to);
               else v.currentTime = to;
             }}
-            className="order-last col-span-2 h-10 w-full touch-none accent-signal sm:order-none sm:col-span-1 sm:h-8"
+            style={{ "--progress": `${(time / (duration || 1)) * 100}%` } as React.CSSProperties}
+            // drawn by hand: Safari's own track is near-black and disappears on the dark player
+            className="order-last col-span-2 h-10 w-full cursor-pointer touch-none appearance-none bg-transparent sm:order-none sm:col-span-1 sm:h-8 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-signal [&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-[linear-gradient(to_right,var(--color-signal)_var(--progress),rgb(239_238_232/.3)_var(--progress))] [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-[linear-gradient(to_right,var(--color-signal)_var(--progress),rgb(239_238_232/.3)_var(--progress))] [&::-webkit-slider-thumb]:-mt-1.5 [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-signal"
           />
           <span className="font-mono text-xs tabular-nums">
             {timecode(time)} / {timecode(duration)}
